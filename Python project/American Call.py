@@ -62,6 +62,11 @@ def AmCall(spot, vol, expiry, strike, r, nSteps, nPaths, nExcer, device="cpu"):
         inMoneyRows = num[~locs]
         outMoneyRows = num[locs]
         m = torch.sum(locs == 0).item()
+
+        if m == 0:
+            optVal = optVal * torch.exp(-r * dt * backstep)
+            continue;
+
         # ---------------- Variables used for regression ----------------#
         rones = torch.tensor([1] * m, dtype=torch.float)
         s1 = S0[i][~locs]
@@ -82,5 +87,5 @@ def AmCall(spot, vol, expiry, strike, r, nSteps, nPaths, nExcer, device="cpu"):
     return price, r.grad, spot.grad, vol.grad, expiry.grad;
 
 
-x = AmCall(36.0, 0.2, 2.0, 40.0, 0.06, 52, 10000, 50)
+x = AmCall(60.0, 0.2, 1.0, 40.0, 0.2, 252, 1000, 50)
 print(x)
