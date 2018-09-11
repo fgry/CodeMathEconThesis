@@ -35,12 +35,12 @@ def simPathsTensor(spot, vol, expiry, r, nSteps, nPaths):
     return paths;
 
 
-def AmCall(spot, vol, expiry, strike, r, nSteps, nPaths, nExcer, device="cpu"):
-    r = torch.tensor(r, requires_grad=True, device=device)
-    spot = torch.tensor(spot, requires_grad=True, device=device)
-    expiry = torch.tensor(expiry, requires_grad=True, device=device)
-    vol = torch.tensor(vol, requires_grad=True, device=device)
-    strike = torch.tensor(strike, requires_grad=True, device=device)
+def AmCall(spot, vol, expiry, strike, r, nSteps, nPaths, nExcer, autograd=False, device="cpu"):
+    r = torch.tensor(r, requires_grad=autograd, device=device)
+    spot = torch.tensor(spot, requires_grad=autograd, device=device)
+    expiry = torch.tensor(expiry, requires_grad=autograd, device=device)
+    vol = torch.tensor(vol, requires_grad=autograd, device=device)
+    strike = torch.tensor(strike, requires_grad=autograd, device=device)
     dt = torch.tensor(expiry / nSteps)
 
     # ---------------- Simulating paths ----------------#
@@ -78,14 +78,26 @@ def AmCall(spot, vol, expiry, strike, r, nSteps, nPaths, nExcer, device="cpu"):
         conValIn = torch.mv(torch.transpose(x, 0, -1), beta)
         optvalOut = optVal[locs] * torch.exp(-r * dt * backstep)
         optValIn = torch.max((strike - S0[i][~locs]), conValIn)
-        perm = torch.cat((inMoneyRows, outMoneyRows), 0).sort(0)[1]
-        optVal = torch.cat((optValIn, optvalOut), 0)[perm]
+        # ---------------- Restoring original indices by a permutation tensor  ----------------#
+        if m == nPaths:
+            optVal = optValIn;
+        else:
+            perm = torch.cat((inMoneyRows, outMoneyRows), 0).sort(0)[1]
+            optVal = torch.cat((optValIn, optvalOut), 0)[perm];
 
     optVal = optVal * torch.exp(-r * dt * (rest + 1))
     price = torch.mean(optVal)
-    price.backward()
-    return price, r.grad, spot.grad, vol.grad, expiry.grad;
+
+    # ---------------- Doing a backward sweep if autograd == True ----------------#
+
+    if autograd == True:
+        price.backward()
+        output = (price, r.grad, spot.grad, strike.grad, vol.grad, expiry.grad)
+    else:
+        output = price
+
+    return output;
 
 
-x = AmCall(60.0, 0.2, 1.0, 40.0, 0.2, 252, 1000, 50)
+x = AmCall(36.0, 0.2, 1.0, 40.0, 0.06, 52, 10000, 50, False)
 print(x)
