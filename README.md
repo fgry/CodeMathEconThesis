@@ -1,5 +1,7 @@
 # CodeMathEconThesis
 
+Code developet alongside my master thesis: Algorithmic Differentiation - Applications in Monte Carlo
+
 The Python Project folder contains all python files.
 
 The file Functions.py contains nearly all functions used for computations. 
